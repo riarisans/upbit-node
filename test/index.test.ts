@@ -1,11 +1,14 @@
 import { UpbitClient } from "../src";
 
-main().catch();
-
 async function main() {
-    let client = new UpbitClient({ accessKey: "", secretKey: "" });
+    const client = new UpbitClient();
 
-    let result = await client.market.getAllMarkets(true);
+    const result = await client.quotation.pair.listAll();
 
     console.log(result);
 }
+
+main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+});
