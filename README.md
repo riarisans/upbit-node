@@ -22,10 +22,10 @@ const client = new UpbitClient({
 });
 
 // 잔고 조회
-const balances = await client.account.getBalances();
+const accounts = await client.exchange.asset.getAccounts();
 
 // 시세 조회
-const ticker = await client.ticker.getTicker(["KRW-BTC"]);
+const ticker = await client.quotation.ticker.byMarkets(["KRW-BTC"]);
 
 console.log(balances);
 console.log(ticker);
