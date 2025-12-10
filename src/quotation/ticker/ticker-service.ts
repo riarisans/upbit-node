@@ -37,4 +37,10 @@ export class TickerService {
     async byMarkets(markets: string[]): Promise<Ticker[]> {
         return this.http.getPublic<Ticker[]>("/ticker", { markets: markets.join(",") });
     }
+
+    async all(quoteCurrencies: string[]): Promise<Ticker[]> {
+        return this.http.getPublic<Ticker[]>("/ticker/all", {
+            quoteCurrencies: quoteCurrencies.join(","),
+        });
+    }
 }
