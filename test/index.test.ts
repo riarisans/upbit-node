@@ -3,9 +3,7 @@ import { UpbitClient } from "../src";
 async function main() {
     const client = new UpbitClient();
 
-    const result = await client.quotation.pair.listAll();
-
-    console.log(result);
+    client.websocket.ticker.subscribe(["KRW-BTC"], (payload) => {});
 }
 
 main().catch((err) => {
