@@ -150,30 +150,63 @@ type WebsocketFrame<TTopic extends WebsocketTopic> =
 class WebsocketFeed<TTopic extends WebsocketTopic> {
     constructor(private readonly topic: TTopic, private readonly config: UpbitClientConfig = {}) {}
 
-    subscribe(markets: string[], onMessage: (payload: WebsocketPayload<TTopic>) => void): WebSocket {
-        const ws = new WebSocket("wss://api.upbit.com/websocket/v1");
+    subscribe(
+        markets: string[],
+        onMessage: (payload: WebsocketPayload<TTopic>) => void,
+        options?: {
+            autoReconnect?: boolean;
+            reconnectDelay?: number;
+        }
+    ) {
+        const { autoReconnect = false, reconnectDelay = 1000 } = options ?? {};
 
-        ws.on("open", () => {
-            const ticket = `upbit-node-${Date.now()}`;
-            const frame: Array<WebsocketFrame<TTopic>> = [{ ticket }, { type: this.topic, codes: markets }];
+        let ws: WebSocket | null = null;
+        let closedByUser = false;
 
-            if ((this.topic === "myOrder" || this.topic === "myAsset") && this.config.accessKey) {
-                frame.push({ authorization: `Bearer ${this.config.accessKey}` });
+        const connect = () => {
+            const socket = new WebSocket("wss://api.upbit.com/websocket/v1");
+            ws = socket;
+
+            socket.on("open", () => {
+                const ticket = `upbit-node-${Date.now()}`;
+                const frame: Array<WebsocketFrame<TTopic>> = [{ ticket }, { type: this.topic, codes: markets }];
+
+                if ((this.topic === "myOrder" || this.topic === "myAsset") && this.config.accessKey) {
+                    frame.push({ authorization: `Bearer ${this.config.accessKey}` });
+                }
+
+                socket.send(JSON.stringify(frame));
+            });
+
+            socket.on("message", (data) => {
+                try {
+                    const text = typeof data === "string" ? data : data.toString();
+                    onMessage(JSON.parse(text) as WebsocketPayload<TTopic>);
+                } catch {
+                    onMessage(data as unknown as WebsocketPayload<TTopic>);
+                }
+            });
+
+            if (autoReconnect) {
+                socket.on("close", () => {
+                    if (closedByUser) return;
+                    setTimeout(connect, reconnectDelay);
+                });
+
+                socket.on("error", () => {
+                    socket.close();
+                });
             }
+        };
 
-            ws.send(JSON.stringify(frame));
-        });
+        connect();
 
-        ws.on("message", (data) => {
-            try {
-                const text = typeof data === "string" ? data : data.toString();
-                onMessage(JSON.parse(text) as WebsocketPayload<TTopic>);
-            } catch {
-                onMessage(data as unknown as WebsocketPayload<TTopic>);
-            }
-        });
-
-        return ws;
+        return {
+            close() {
+                closedByUser = true;
+                ws?.close();
+            },
+        };
     }
 }
 
