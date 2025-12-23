@@ -2,6 +2,7 @@ import { UpbitHttpClient } from "../../shared/http-client";
 
 export type OrderSide = "ask" | "bid";
 export type OrderType = "limit" | "price" | "market";
+export type OrderState = "wait" | "done" | "cancel";
 
 export interface PlaceOrderRequest {
     market: string;
@@ -16,18 +17,34 @@ export interface OrderDetail {
     uuid: string;
     side: OrderSide;
     ord_type: OrderType;
-    price: string;
-    state: string;
+    state: OrderState;
     market: string;
     created_at: string;
-    volume: string;
+
+    price: string | null;
+    volume: string | null;
     remaining_volume: string;
+    executed_volume: string;
+    executed_funds?: string;
+
     reserved_fee: string;
     remaining_fee: string;
     paid_fee: string;
     locked: string;
-    executed_volume: string;
+
     trades_count: number;
+    avg_price?: string;
+    identifier?: string;
+
+    trades?: {
+        market: string;
+        uuid: string;
+        price: string;
+        volume: string;
+        funds: string;
+        side: OrderSide;
+        created_at: string;
+    }[];
 }
 
 export class OrderService {
@@ -41,7 +58,13 @@ export class OrderService {
         return this.http.getPrivate<OrderDetail>("/order", params);
     }
 
-    async listOrders(params?: { market?: string; state?: string; page?: number; limit?: number; order_by?: "asc" | "desc" }): Promise<OrderDetail[]> {
+    async listOrders(params?: {
+        market?: string;
+        state?: string;
+        page?: number;
+        limit?: number;
+        order_by?: "asc" | "desc";
+    }): Promise<OrderDetail[]> {
         return this.http.getPrivate<OrderDetail[]>("/orders", params);
     }
 
